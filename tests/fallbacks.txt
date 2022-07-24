@@ -1,5 +1,6 @@
- Can be improved by checking if the column to be ignored is encountered depending on the max
+Can be improved by checking if the column to be ignored is encountered depending on the max
 level passed into the function. It needs to delete the columns regardless of them being encountered
 at different specified maxlevels. This could be done by iterating and deleting these  values before
 a deep copy of the input dicitonary is made. This WILL increase the functions time complexity,
-making it takemuch longer for much larger json arrs.
+making it take much longer for much larger json arrs (also not sure how it will affect the logic).
+

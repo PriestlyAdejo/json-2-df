@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import (
     abc,
     defaultdict,
+    OrderedDict
 )
 import copy
 from typing import (
@@ -27,467 +28,9 @@ import json
 # ---------------------------------------------------------------------
 
 """
-This is a sample of the data to be expected, it contains the first 14 items of a random main column,
-inside the main json data file:
+This function is heavily based on the nested_to_record() dictionary normalising function inside 
+pandas._normalize().
 """
-test_dict = {
-   "16_TO_18_PERFORMANCE":{
-      "16_TO_18_PERFORMANCE":{
-         "ACHIEVING_AAB_OR_HIGHER_INCLUDING_AT_LEAST_2_FACILITATING_SUBJECTS":{
-            "col_datatype":"percent",
-            "col_items":[
-               "SUPP",
-               "62.5%",
-               "SUPP",
-               "16.7%",
-               "NE",
-               "17.9%",
-               "64.0%",
-               "90.0%",
-               "SUPP",
-               "27.8%",
-               "36.4%",
-               "71.7%",
-               "12.5%",
-               "45.5%"
-            ],
-            "pdf_reports":{
-               "content":{
-                  "img_data":[
-                     
-                  ],
-                  "text":[
-                     
-                  ]
-               },
-               "inspection_date":[
-                  
-               ],
-               "inspection_outcome":[
-                  
-               ],
-               "inspection_type":[
-                  
-               ],
-               "link":[
-                  
-               ],
-               "published_date":[
-                  
-               ]
-            }
-         },
-         "GRADE":{
-            "col_datatype":"freetext",
-            "col_items":[
-               "C",
-               "B+",
-               "SUPP",
-               "C+",
-               "D-",
-               "D+",
-               "A",
-               "A+",
-               "C+",
-               "B-",
-               "B+",
-               "A-",
-               "B-",
-               "B+"
-            ],
-            "pdf_reports":{
-               "content":{
-                  "img_data":[
-                     
-                  ],
-                  "text":[
-                     
-                  ]
-               },
-               "inspection_date":[
-                  
-               ],
-               "inspection_outcome":[
-                  
-               ],
-               "inspection_type":[
-                  
-               ],
-               "link":[
-                  
-               ],
-               "published_date":[
-                  
-               ]
-            }
-         },
-         "GRADE_AND_POINTS_FOR_A_STUDENTS_BEST_3_A_LEVELS":{
-            "col_datatype":"integer",
-            "col_items":[
-               "SUPP",
-               "A-",
-               "SUPP",
-               "B-",
-               "NE",
-               "C-",
-               "A",
-               "A+",
-               "SUPP",
-               "C+",
-               "B+",
-               "A",
-               "B-",
-               "A-"
-            ],
-            "pdf_reports":{
-               "content":{
-                  "img_data":[
-                     
-                  ],
-                  "text":[
-                     
-                  ]
-               },
-               "inspection_date":[
-                  
-               ],
-               "inspection_outcome":[
-                  
-               ],
-               "inspection_type":[
-                  
-               ],
-               "link":[
-                  
-               ],
-               "published_date":[
-                  
-               ]
-            }
-         },
-         "NUMBER_OF_STUDENTS_WITH_AN_A_LEVEL_EXAM_ENTRY":{
-            "col_datatype":"integer",
-            "col_items":[
-               "9",
-               "16",
-               "2",
-               "36",
-               "7",
-               "49",
-               "100",
-               "71",
-               "8",
-               "20",
-               "11",
-               "62",
-               "22",
-               "11"
-            ],
-            "pdf_reports":{
-               "content":{
-                  "img_data":[
-                     
-                  ],
-                  "text":[
-                     
-                  ]
-               },
-               "inspection_date":[
-                  
-               ],
-               "inspection_outcome":[
-                  
-               ],
-               "inspection_type":[
-                  
-               ],
-               "link":[
-                  
-               ],
-               "published_date":[
-                  
-               ]
-            }
-         },
-         "POINT_SCORE":{
-            "col_datatype":"integer",
-            "col_items":[
-               "31.38",
-               "44.44",
-               "SUPP",
-               "34.08",
-               "15.71",
-               "23.96",
-               "49.39",
-               "53.97",
-               "32.11",
-               "36.98",
-               "43.33",
-               "48.18",
-               "36.53",
-               "44.13"
-            ],
-            "pdf_reports":{
-               "content":{
-                  "img_data":[
-                     
-                  ],
-                  "text":[
-                     
-                  ]
-               },
-               "inspection_date":[
-                  
-               ],
-               "inspection_outcome":[
-                  
-               ],
-               "inspection_type":[
-                  
-               ],
-               "link":[
-                  
-               ],
-               "published_date":[
-                  
-               ]
-            }
-         },
-         "PROGRESS_SCORE_DESCRIPTION":{
-            "col_datatype":"integer",
-            "col_items":[
-               [
-                  "Well above average",
-                  "1.76"
-               ],
-               [
-                  "Well above average",
-                  "1.55"
-               ],
-               [
-                  "Well above average",
-                  "1.28"
-               ],
-               [
-                  "Well above average",
-                  "1.13"
-               ],
-               [
-                  "Well above average",
-                  "1.04"
-               ],
-               [
-                  "Well above average",
-                  "1.01"
-               ],
-               [
-                  "Well above average",
-                  "0.93"
-               ],
-               [
-                  "Well above average",
-                  "0.93"
-               ],
-               [
-                  "Well above average",
-                  "0.92"
-               ],
-               [
-                  "Well above average",
-                  "0.83"
-               ],
-               [
-                  "Well above average",
-                  "0.83"
-               ],
-               [
-                  "Well above average",
-                  "0.79"
-               ],
-               [
-                  "Well above average",
-                  "0.75"
-               ],
-               [
-                  "Well above average",
-                  "0.75"
-               ]
-            ],
-            "pdf_reports":{
-               "content":{
-                  "img_data":[
-                     
-                  ],
-                  "text":[
-                     
-                  ]
-               },
-               "inspection_date":[
-                  
-               ],
-               "inspection_outcome":[
-                  
-               ],
-               "inspection_type":[
-                  
-               ],
-               "link":[
-                  
-               ],
-               "published_date":[
-                  
-               ]
-            }
-         },
-         "SCHOOL_OR_COLLEGE_NAME":{
-            "col_datatype":"text",
-            "col_items":[
-               "Abbey College in Malvern",
-               "The National Mathematics and Science College",
-               "Dame Elizabeth Cadbury School",
-               "Chelsea Independent College",
-               "Phoenix Academy",
-               "Brooke House College",
-               "Abbey College Cambridge",
-               "King's College London Maths School",
-               "Hope Academy",
-               "Kingsley School",
-               "Scarisbrick Hall School",
-               "Exeter Mathematics School",
-               "Roedean Moira House",
-               "Hampton Court House"
-            ],
-            "pdf_reports":{
-               "content":{
-                  "img_data":[
-                     
-                  ],
-                  "text":[
-                     
-                  ]
-               },
-               "inspection_date":[
-                  
-               ],
-               "inspection_outcome":[
-                  
-               ],
-               "inspection_type":[
-                  
-               ],
-               "link":[
-                  
-               ],
-               "published_date":[
-                  
-               ]
-            }
-         },
-         "STUDENTS_COMPLETING_THEIR_MAIN_STUDY_PROGRAMME":{
-            "col_datatype":"text",
-            "col_items":[
-               "NA",
-               "NA",
-               "SUPP",
-               "NA",
-               "91.7%",
-               "NA",
-               "NA",
-               "98.6%",
-               "64.3%",
-               "NA",
-               "NA",
-               "98.4%",
-               "NA",
-               "NA"
-            ],
-            "pdf_reports":{
-               "content":{
-                  "img_data":[
-                     
-                  ],
-                  "text":[
-                     
-                  ]
-               },
-               "inspection_date":[
-                  
-               ],
-               "inspection_outcome":[
-                  
-               ],
-               "inspection_type":[
-                  
-               ],
-               "link":[
-                  
-               ],
-               "published_date":[
-                  
-               ]
-            }
-         },
-         "TYPE_OF_SCHOOL_OR_COLLEGE":{
-            "col_datatype":"freetext",
-            "col_items":[
-               "Independent school",
-               "Independent school",
-               "Academy",
-               "Independent school",
-               "Academy",
-               "Independent school",
-               "Independent school",
-               "College",
-               "Academy",
-               "Independent school",
-               "Independent school",
-               "College",
-               "Independent school",
-               "Independent school"
-            ],
-            "pdf_reports":{
-               "content":{
-                  "img_data":[
-                     
-                  ],
-                  "text":[
-                     
-                  ]
-               },
-               "inspection_date":[
-                  
-               ],
-               "inspection_outcome":[
-                  
-               ],
-               "inspection_type":[
-                  
-               ],
-               "link":[
-                  
-               ],
-               "published_date":[
-                  
-               ]
-            }
-         },
-         "reason_sv":{
-            "NA":{
-               "explanation":"Figures are either not available for the year in question, or the data field is not applicable to the school or college",
-               "times_seen":708
-            },
-            "NE":{
-               "explanation":"The school or college did not enter any pupils or students for the qualifications covered by the measure",
-               "times_seen":1230
-            },
-            "SUPP":{
-               "explanation":"In certain circumstances we will suppress an establishment's data. This is usually when there are 5 or fewer pupils or students covered by the measure (29 for apprenticeships measures). We avoid making these figures public to protect individual privacy. We may also suppress data on a case-by-case basis.",
-               "times_seen":689
-            }
-         }
-      }
-   }
-}
 
 # Helper Functions
 def get_dict_path(kh: dict, ignore: dict, ig_key: str)-> dict[str, Any]:
@@ -499,6 +42,7 @@ def get_dict_path(kh: dict, ignore: dict, ig_key: str)-> dict[str, Any]:
    new_keys = []
    new_lvls = []
    ignore_count = 0
+
    set_lvls = set(list(kh.values()))
    for lvl in set_lvls:
       idxs = [(idx_in_dict, key) for idx_in_dict, (key, val) in enumerate(list(kh.items())) if val == lvl]
@@ -660,6 +204,7 @@ def nested_ignore_cols_to_record(
    pivot_dels: dict = {},
    return_dels: bool = False,
    path_idx: int = 0,
+   first_update: bool = True,
    ignore: dict = {"cols": None,\
                    "name_lvls": None}
 ):
@@ -718,29 +263,29 @@ def nested_ignore_cols_to_record(
 
     Example (1.)
     --------
-    >>> nested_ignore_cols_to_record(
-    ...     dict(flat1=1, dict1=dict(c=1, d=2), nested=dict(e=dict(c=1, d=2), d=2))
+    nested_ignore_cols_to_record(
+      dict(flat1=1, dict1=dict(c=1, d=2), nested=dict(e=dict(c=1, d=2), d=2))
 
-            {\
-        'flat1': 1, \
-        'dict1.c': 1, \
-        'dict1.d': 2, \
-        'nested.e.c': 1, \
-        'nested.e.d': 2, \
-        'nested.d': 2\
+            {
+        'flat1': 1, 
+        'dict1.c': 1, 
+        'dict1.d': 2, 
+        'nested.e.c': 1, 
+        'nested.e.d': 2, 
+        'nested.d': 2
         }
 
     Example (2.)
     --------
-    >>> nested_ignore_cols_to_record(
-    ...     dict(flat1=1, dict1=dict(c=1, d=2), nested=dict(e=dict(c=1, d=2), d=2),
+    nested_ignore_cols_to_record(
+         dict(flat1=1, dict1=dict(c=1, d=2), nested=dict(e=dict(c=1, d=2), d=2),
                 ignore = {"cols": ["e"], "name_lvls": None},
                 return_dels = True)
 
-       returns: NORMALISED DICT WITH 'e' col ignored:\
+       returns: NORMALISED DICT WITH 'e' col ignored:
                {'flat1': 1, 'dict1.c': 1, 'dict1.d': 2, 'nested.d': 2},
 
-                FULL_DELS_TUPLE:\
+                FULL_DELS_TUPLE:
                ({'nested': {'e': {'c': 1, 'd': 2}}}, [['nested', 'e']], {'e': {'nested': {'c': 1, 'd': 2}}}, 1)
                
                FULL_DELS_TUPLE[0] = del_dict
@@ -783,11 +328,24 @@ def nested_ignore_cols_to_record(
             else:
                newkey = prefix + sep + k
          elif k in ignore["cols"]:
-            keys_hist = get_dict_path(keys_hist, ignore, k)
-            locs, _ = get_locs(keys_hist)
-            dels.append(locs)
-            path_arr.append((locs, path_idx))
-            path_idx += 1
+            if first_update == True:
+               del_dict = {}
+               pivot_dels = {}
+               dels = []
+               path_arr = []
+
+               keys_hist = get_dict_path(keys_hist, ignore, k)
+               locs, _ = get_locs(keys_hist)
+               dels.append(locs)
+               path_arr.append((locs, path_idx))
+               path_idx += 1
+               first_update = False
+            else:
+               keys_hist = get_dict_path(keys_hist, ignore, k)
+               locs, _ = get_locs(keys_hist)
+               dels.append(locs)
+               path_arr.append((locs, path_idx))
+               path_idx += 1
             continue
 
          # flatten if type is dict and
@@ -803,20 +361,41 @@ def nested_ignore_cols_to_record(
             continue
          else:
             v = new_d.pop(k)
+            keys_hist = get_dict_path(keys_hist, ignore, k)
+
             if return_dels == True:
                nest_dict, d_tuple = \
                nested_ignore_cols_to_record(v, newkey, sep, level + 1, max_level,\
-                           keys_hist, del_dict, dels, pivot_dels, return_dels, path_idx, ignore = ignore)
-               path_idx = d_tuple[-1]
+                           keys_hist, del_dict, dels, pivot_dels, return_dels, path_idx, first_update = first_update, ignore = ignore)
+               del_dict = d_tuple[0]
+               dels = d_tuple[1]
+               pivot_dels = d_tuple[2]
+               path_idx = d_tuple[3]
+               
+               # Updating first_update
+               for item in d_tuple:
+                  if isinstance(item, dict):
+                     if len(item.items()) > 0:
+                        first_update = False
+                  elif isinstance(item, list):
+                     if len(item) > 0:
+                        first_update = False
+                  if isinstance(item, int) or isinstance(item, float):
+                     if item > 0:
+                        first_update = False
+                  break
             else:
                nest_dict = \
                nested_ignore_cols_to_record(v, newkey, sep, level + 1, max_level,\
-                           keys_hist, del_dict, dels, pivot_dels, return_dels, path_idx, ignore = ignore)
+                           keys_hist, del_dict, dels, pivot_dels, return_dels, path_idx, first_update, ignore = ignore)
             new_d.update(nest_dict)
       new_ds.append(new_d)
    
    if singleton:
-      if ignore["cols"] is not None:
+      if (ignore["cols"] is not None and len(path_arr) > 0
+          and ignore["name_lvls"] is not None
+          ):
+         # Resetting all dels_tup for repeated implementations
          del_tups = [t[0] for t in path_arr]
          temp_d = {}
          for del_tup in del_tups:
@@ -842,7 +421,9 @@ def nested_ignore_cols_to_record(
          return new_ds[0], (del_dict, dels, pivot_dels, path_idx)
       return new_ds[0]
 
-   if ignore["cols"] is not None and ignore["name_lvls"] is not None:
+   if (ignore["cols"] is not None and len(path_arr) > 0
+       and ignore["name_lvls"] is not None
+          ):
       del_tups = [t[0] for t in path_arr]
       temp_d = {}
       for del_tup in del_tups:
@@ -865,33 +446,29 @@ def nested_ignore_cols_to_record(
       pivot_dels = update_dict(pivot_dels, temp_d)
 
    if return_dels == True: # User defined
-         return new_ds, (del_dict, dels, pivot_dels, path_idx)
+      return new_ds, (del_dict, dels, pivot_dels, path_idx)
    return new_ds
 
+def main(ds, nskwargs):
+   norm_dict, dels_tuple = nested_ignore_cols_to_record(ds, **nskwargs)
+   print(f"\n\nNormalized Dictionary: {norm_dict}")
+   print(f"\n\n\nTuple Of Deleted Values: {dels_tuple}\n\n")
+   return norm_dict, dels_tuple
 
 
-"""file_name = 'test_json.json'
-with open(file_name, 'w') as j_obj:
-   json.dump(test_dict, j_obj, sort_keys=True)
+"""# This if clause is only used as the current file is the file used to operate the program
+# if we are importing it elsewhere, we dont need the if clause.
+if __name__ == "__main__": 
+   import time
+   print("\n\nMain encapsulation 1\n\n")
+   test_dict_1 = dict(flat_td_1=0, dict_td_1=dict(a=1, d=4), nested_td_1=dict(f=dict(r=34, g=44), p=2))
+   igs_1 = {"cols": ["f"], "name_lvls": [0]}
+   nskwargs_1 = dict(sep=".", return_dels=True, ignore=igs_1)
+   main(test_dict_1, nskwargs_1)
 
-with open(file_name, 'r') as j_obj:
-   test_json = json.load(j_obj)"""
-
-"""# Attempting to normalize the json
-norm_json1, dels_tuple = nested_ignore_cols_to_record(test_json, sep=".", return_dels = True)
-# print(f"\n\n\nNormalized Json Doc: {norm_json1}")
-
-df = pd.DataFrame(norm_json1)
-print(f"NORMALISED DF: {df}")
-print(f"dels_tup: {dels_tuple[2]}\n\n\n")"""
-
-
-
-""""tet_dict = dict(flat1=1, dict1=dict(c=1, d=2), nested=dict(e=dict(c=1, d=2), d=2))
-igs = {"cols": ["e"], "name_lvls": [0]}
-norm_json2, dels_tuple2 = nested_ignore_cols_to_record(tet_dict, sep=".", return_dels = True, ignore=igs)
-
-
-print(f"\nNORMALISED DICT WITH 'e' col ignored: {norm_json2}\n")
-print(f"FULL DELS TUPLE: {dels_tuple2}\n")                                                
-""""
+   time.sleep(5)
+   print("\n\nMain encapsulation 2\n\n")
+   test_dict_2 = dict(flat_td_2=0, dict_td_2=dict(g=1, s=4), nested_td_2=dict(k=dict(r=2, g=69420), g=2))
+   igs_2 = igs = {"cols": ["k"], "name_lvls": [0]}
+   nskwargs_2 = dict(sep=".", return_dels = True, ignore=igs_2)
+   main(test_dict_2, nskwargs_2)"""

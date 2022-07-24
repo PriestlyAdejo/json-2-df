@@ -35,6 +35,7 @@ def get_dict_path(kh: dict, ignore: dict, ig_key: str)-> dict[str, Any]:
    new_keys = []
    new_lvls = []
    ignore_count = 0
+
    set_lvls = set(list(kh.values()))
    for lvl in set_lvls:
       idxs = [(idx_in_dict, key) for idx_in_dict, (key, val) in enumerate(list(kh.items())) if val == lvl]
@@ -208,6 +209,7 @@ def nested_ignore_cols_to_record(
    pivot_dels: dict = {},
    return_dels: bool = False,
    path_idx: int = 0,
+   first_update: bool = True,
    ignore: dict = {"cols": None,\
                    "name_lvls": None}
 ):
@@ -266,29 +268,29 @@ def nested_ignore_cols_to_record(
 
     Example (1.)
     --------
-    >>> nested_ignore_cols_to_record(
-    ...     dict(flat1=1, dict1=dict(c=1, d=2), nested=dict(e=dict(c=1, d=2), d=2))
+    nested_ignore_cols_to_record(
+      dict(flat1=1, dict1=dict(c=1, d=2), nested=dict(e=dict(c=1, d=2), d=2))
 
-            {\
-        'flat1': 1, \
-        'dict1.c': 1, \
-        'dict1.d': 2, \
-        'nested.e.c': 1, \
-        'nested.e.d': 2, \
-        'nested.d': 2\
+            {
+        'flat1': 1, 
+        'dict1.c': 1, 
+        'dict1.d': 2, 
+        'nested.e.c': 1, 
+        'nested.e.d': 2, 
+        'nested.d': 2
         }
 
     Example (2.)
     --------
-    >>> nested_ignore_cols_to_record(
-    ...     dict(flat1=1, dict1=dict(c=1, d=2), nested=dict(e=dict(c=1, d=2), d=2),
+    nested_ignore_cols_to_record(
+         dict(flat1=1, dict1=dict(c=1, d=2), nested=dict(e=dict(c=1, d=2), d=2),
                 ignore = {"cols": ["e"], "name_lvls": None},
                 return_dels = True)
 
-       returns: NORMALISED DICT WITH 'e' col ignored:\
+       returns: NORMALISED DICT WITH 'e' col ignored:
                {'flat1': 1, 'dict1.c': 1, 'dict1.d': 2, 'nested.d': 2},
 
-                FULL_DELS_TUPLE:\
+                FULL_DELS_TUPLE:
                ({'nested': {'e': {'c': 1, 'd': 2}}}, [['nested', 'e']], {'e': {'nested': {'c': 1, 'd': 2}}}, 1)
                
                FULL_DELS_TUPLE[0] = del_dict
@@ -331,11 +333,24 @@ def nested_ignore_cols_to_record(
             else:
                newkey = prefix + sep + k
          elif k in ignore["cols"]:
-            keys_hist = get_dict_path(keys_hist, ignore, k)
-            locs, _ = get_locs(keys_hist)
-            dels.append(locs)
-            path_arr.append((locs, path_idx))
-            path_idx += 1
+            if first_update == True:
+               del_dict = {}
+               pivot_dels = {}
+               dels = []
+               path_arr = []
+
+               keys_hist = get_dict_path(keys_hist, ignore, k)
+               locs, _ = get_locs(keys_hist)
+               dels.append(locs)
+               path_arr.append((locs, path_idx))
+               path_idx += 1
+               first_update = False
+            else:
+               keys_hist = get_dict_path(keys_hist, ignore, k)
+               locs, _ = get_locs(keys_hist)
+               dels.append(locs)
+               path_arr.append((locs, path_idx))
+               path_idx += 1
             continue
 
          # flatten if type is dict and
@@ -351,20 +366,41 @@ def nested_ignore_cols_to_record(
             continue
          else:
             v = new_d.pop(k)
+            keys_hist = get_dict_path(keys_hist, ignore, k)
+
             if return_dels == True:
                nest_dict, d_tuple = \
                nested_ignore_cols_to_record(v, newkey, sep, level + 1, max_level,\
-                           keys_hist, del_dict, dels, pivot_dels, return_dels, path_idx, ignore = ignore)
-               path_idx = d_tuple[-1]
+                           keys_hist, del_dict, dels, pivot_dels, return_dels, path_idx, first_update = first_update, ignore = ignore)
+               del_dict = d_tuple[0]
+               dels = d_tuple[1]
+               pivot_dels = d_tuple[2]
+               path_idx = d_tuple[3]
+               
+               # Updating first_update
+               for item in d_tuple:
+                  if isinstance(item, dict):
+                     if len(item.items()) > 0:
+                        first_update = False
+                  elif isinstance(item, list):
+                     if len(item) > 0:
+                        first_update = False
+                  if isinstance(item, int) or isinstance(item, float):
+                     if item > 0:
+                        first_update = False
+                  break
             else:
                nest_dict = \
                nested_ignore_cols_to_record(v, newkey, sep, level + 1, max_level,\
-                           keys_hist, del_dict, dels, pivot_dels, return_dels, path_idx, ignore = ignore)
+                           keys_hist, del_dict, dels, pivot_dels, return_dels, path_idx, first_update, ignore = ignore)
             new_d.update(nest_dict)
       new_ds.append(new_d)
    
    if singleton:
-      if ignore["cols"] is not None:
+      if (ignore["cols"] is not None and len(path_arr) > 0
+          and ignore["name_lvls"] is not None
+          ):
+         # Resetting all dels_tup for repeated implementations
          del_tups = [t[0] for t in path_arr]
          temp_d = {}
          for del_tup in del_tups:
@@ -390,7 +426,9 @@ def nested_ignore_cols_to_record(
          return new_ds[0], (del_dict, dels, pivot_dels, path_idx)
       return new_ds[0]
 
-   if ignore["cols"] is not None and ignore["name_lvls"] is not None:
+   if (ignore["cols"] is not None and len(path_arr) > 0
+       and ignore["name_lvls"] is not None
+          ):
       del_tups = [t[0] for t in path_arr]
       temp_d = {}
       for del_tup in del_tups:
@@ -413,7 +451,7 @@ def nested_ignore_cols_to_record(
       pivot_dels = update_dict(pivot_dels, temp_d)
 
    if return_dels == True: # User defined
-         return new_ds, (del_dict, dels, pivot_dels, path_idx)
+      return new_ds, (del_dict, dels, pivot_dels, path_idx)
    return new_ds
 
 def nested_to_record(
